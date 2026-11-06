@@ -34,38 +34,68 @@ async function loadNews(i){
   const s=window.SNAPSHOT?.data?.[i.id];if(s?.news)return{news:s.news,src:`новости из снимка на ${SNAPSHOT.fetched}`,stale:true};
   return{news:null,src:'лента недоступна'};
 }
-function chart(bars,plan,d){const c=$('#chart'),x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);if(!bars)return;
-  const b=bars.slice(-60);let hi=Math.max(...b.map(v=>v[2])),lo=Math.min(...b.map(v=>v[3]));
-  if(plan){hi=Math.max(hi,plan.take,plan.stop,plan.entry);lo=Math.min(lo,plan.take,plan.stop,plan.entry)}
-  const pad=(hi-lo)*.05;hi+=pad;lo-=pad;const Y=v=>H-(v-lo)/(hi-lo)*H,cw=(W-60)/b.length;
-  b.forEach((v,k)=>{const X=k*cw+cw/2,up=v[4]>=v[1];x.strokeStyle=x.fillStyle=up?'#8fc79a':'#d98a7a';x.beginPath();x.moveTo(X,Y(v[2]));x.lineTo(X,Y(v[3]));x.stroke();
-    x.fillRect(X-cw*.35,Math.min(Y(v[1]),Y(v[4])),cw*.7,Math.max(1,Math.abs(Y(v[1])-Y(v[4]))))});
-  x.font='11px system-ui';if(plan)[['entry','#e0a24a','вход'],['stop','#d98a7a','стоп'],['take','#8fc79a','тейк']].forEach(([k,col,l])=>{x.strokeStyle=x.fillStyle=col;x.setLineDash([4,4]);x.beginPath();x.moveTo(0,Y(plan[k]));x.lineTo(W-60,Y(plan[k]));x.stroke();x.setLineDash([]);x.fillText(l+' '+Committee.fmt(plan[k],d),W-58,Y(plan[k])+4)})}
+let lastChart=null, painting=false, chartQueued=false;
+function chart(bars,plan,d){
+  if(arguments.length) lastChart=bars?[bars,plan,d]:null;
+  const c=$('#chart'); if(!c) return;
+  const W=c.clientWidth||0, H=c.clientHeight||0;
+  if(W<20||H<20) return;
+  if(painting){chartQueued=true; return}
+  painting=true;
+  try{
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    c.width=Math.round(W*dpr); c.height=Math.round(H*dpr);
+    const x=c.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,W,H);
+    const job=lastChart; if(!job) return;
+    const [bs,pl,dg]=job, b=bs.slice(-60); let hi=Math.max(...b.map(v=>v[2])), lo=Math.min(...b.map(v=>v[3]));
+    if(pl){hi=Math.max(hi,pl.take,pl.stop,pl.entry);lo=Math.min(lo,pl.take,pl.stop,pl.entry)}
+    const pad=(hi-lo)*.08||1; hi+=pad; lo-=pad;
+    x.font='11px system-ui';
+    const labels=pl?[['entry','#e0a24a','вход'],['stop','#d98a7a','стоп'],['take','#8fc79a','тейк']].map(([k,col,l])=>[k,col,l+' '+Committee.fmt(pl[k],dg)]):[];
+    const gutter=Math.max(64, labels.reduce((m,lab)=>Math.max(m, Math.ceil(x.measureText(lab[2]).width)+10), 0));
+    const plotR=W-gutter-4, Y=v=>16+(1-(v-lo)/(hi-lo))*(H-32), cw=Math.max(1,(plotR-8)/b.length);
+    b.forEach((v,k)=>{const X=6+k*cw+cw/2, up=v[4]>=v[1]; x.strokeStyle=x.fillStyle=up?'#8fc79a':'#d98a7a'; x.beginPath(); x.moveTo(X,Y(v[2])); x.lineTo(X,Y(v[3])); x.stroke();
+      x.fillRect(X-Math.min(cw*.3,3),Math.min(Y(v[1]),Y(v[4])),Math.max(1,Math.min(cw*.6,6)),Math.max(1,Math.abs(Y(v[1])-Y(v[4]))))});
+    labels.forEach(([k,col,text])=>{x.strokeStyle=x.fillStyle=col; x.setLineDash([4,4]); x.beginPath(); x.moveTo(0,Y(pl[k])); x.lineTo(plotR,Y(pl[k])); x.stroke(); x.setLineDash([]); x.fillText(text, plotR+6, Y(pl[k])+4)});
+  } finally {
+    painting=false;
+    if(chartQueued){chartQueued=false; requestAnimationFrame(()=>chart())}
+  }
+}
+if(window.ResizeObserver){new ResizeObserver(()=>{if(lastChart&&!painting) chart(...lastChart)}).observe($('#chart').parentElement)}
 const BOTS={scanner:['📡','Сканер'],news:['📰','Новости'],trader:['🎯','Трейдер'],skeptic:['🧐','Скептик']};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function say(b,text,link){document.querySelectorAll('.tile').forEach(t=>t.classList.toggle('on',t.dataset.b===b));
-  const t=document.createElement('p');t.className='typing';t.textContent=BOTS[b][1]+' печатает…';$('#chat').append(t);await sleep(700);t.remove();
-  const m=document.createElement('div');m.className='msg '+b;m.innerHTML=`<span class="av">${BOTS[b][0]}</span><div class="bub"><div class="who">${BOTS[b][1]}</div><div></div></div>`;
-  m.querySelector('.bub div:last-child').textContent=text;if(link){const a=document.createElement('a');a.href=link;a.target='_blank';a.rel='noopener';a.textContent='источник →';m.querySelector('.bub').append(document.createElement('br'),a)}
-  $('#chat').append(m);m.scrollIntoView({block:'nearest',behavior:'smooth'});await sleep(500)}
+function clearBots(){document.querySelectorAll('.bot').forEach(t=>{t.classList.remove('on'); t.querySelector('.bot-text').innerHTML='<p class="hint">Ждёт запуска.</p>'})}
+async function say(b,text,link){document.querySelectorAll('.bot').forEach(t=>t.classList.toggle('on',t.dataset.b===b));
+  const slot=document.querySelector('.bot[data-b="'+b+'"] .bot-text'); const hint=slot.querySelector('.hint'); if(hint) hint.remove();
+  const t=document.createElement('p'); t.className='typing'; t.textContent=BOTS[b][1]+' печатает…'; slot.append(t);
+  if(window.innerWidth<1100) slot.closest('.bot').scrollIntoView({block:'nearest',behavior:'smooth'});
+  await sleep(420); t.remove();
+  const p=document.createElement('p'); p.textContent=text; slot.append(p);
+  if(link){const a=document.createElement('a'); a.href=link; a.target='_blank'; a.rel='noopener'; a.textContent='источник →'; slot.append(a)}
+  await sleep(240)}
 let cur=null;
-$('#run').onclick=async()=>{const i=INS.find(x=>x.id===$('#ins').value);$('#run').disabled=true;$('#chat').innerHTML='';$('#summary').hidden=true;$('#decision').textContent='';
+function kpis(i,r,stale){const F=v=>Committee.fmt(v,i.digits), plan=r.plan;
+  $('#sumBody').innerHTML=`<div class="kpi kpi-price"><span>${i.name} (${i.code})</span><b>${F(r.last)}${stale?' (снимок)':''}</b></div>
+   <div class="kpi"><span>Идея</span><b>${plan?(plan.dir==='long'?'Лонг':'Шорт'):'сетапа нет'}</b></div>
+   <div class="kpi"><span>Вход</span><b>${plan?F(plan.entry):'—'}</b></div>
+   <div class="kpi"><span>Стоп</span><b>${plan?F(plan.stop):'—'}</b></div>
+   <div class="kpi"><span>Тейк</span><b>${plan?F(plan.take):'—'}</b></div>
+   <div class="kpi"><span>Подтверждения</span><b>${r.conf.length?r.conf.join(', '):'нет'}</b></div>
+   <div class="kpi"><span>Вердикт</span><b><span class="verdict v-${r.verdict}">${r.verdict}</span></b></div>`}
+$('#run').onclick=async()=>{const i=INS.find(x=>x.id===$('#ins').value);$('#run').disabled=true;clearBots();$('#decision').textContent='';
   document.querySelectorAll('.decide button').forEach(b=>b.classList.remove('sel'));
-  $('#src').className='src';$('#src').textContent='Загружаю котировки и ленту…';
+  $('#src').className='src';$('#src').textContent=$('#src').title='Загружаю котировки и ленту…';
   const[p,n]=await Promise.all([loadBars(i),loadNews(i)]);
-  $('#src').className='src'+(p.err?' err':p.stale?' warn':'');$('#src').textContent=`Цены: ${p.src}. Новости: ${n.src}.`;
+  $('#src').className='src'+(p.err?' err':p.stale?' warn':'');$('#src').textContent=$('#src').title=`Цены: ${p.src}. Новости: ${n.src}.`;
   $('#chartTitle').textContent=`${i.name} — свечи 1 ч`;
   if(!p.bars){await say('scanner','Котировки не загрузились — не на чем искать объём. Сессию проводить не будем.');$('#run').disabled=false;$('#run').textContent='Обновить сессию';chart(null);return}
   const r=Committee.analyze(i,p.bars,n.news);cur={i,r};
   if(r.error){await say('scanner',r.error);$('#run').disabled=false;return}
   chart(r.bars,r.plan,i.digits);
   await say('scanner',r.scanner);await say('news',r.news,r.newsLink);await say('trader',r.trader);await say('skeptic',r.skeptic);if(r.traderReply)await say('trader',r.traderReply);
-  document.querySelectorAll('.tile').forEach(t=>t.classList.remove('on'));
-  const F=v=>Committee.fmt(v,i.digits);
-  $('#sumBody').innerHTML=`<div class="kv"><span>Инструмент</span><b>${i.name} (${i.code})</b><span>Последняя цена</span><b>${F(r.last)}${p.stale?' (снимок)':''}</b>
-   ${r.plan?`<span>Идея</span><b>${r.plan.dir==='long'?'Лонг':'Шорт'}</b><span>Вход</span><b>${F(r.plan.entry)}</b><span>Стоп</span><b>${F(r.plan.stop)}</b><span>Тейк</span><b>${F(r.plan.take)}</b>`:'<span>Идея</span><b>сетапа нет</b>'}
-   <span>Подтверждения</span><b>${r.conf.length?r.conf.join(', '):'нет'}</b><span>Вердикт скептика</span><b><span class="verdict v-${r.verdict}">${r.verdict}</span></b></div>`;
-  $('#summary').hidden=false;$('#run').disabled=false;$('#run').textContent='Обновить сессию'};
+  document.querySelectorAll('.bot').forEach(t=>t.classList.remove('on'));
+  kpis(i,r,p.stale);$('#run').disabled=false;$('#run').textContent='Обновить сессию'};
 const LOG=JSON.parse(localStorage.getItem('tf-log')||'[]');const drawLog=()=>{$('#log').innerHTML=LOG.slice(-10).reverse().map(l=>`<li>${l}</li>`).join('')||'<li>пока пусто</li>'};drawLog();
 document.querySelectorAll('.decide button').forEach(b=>b.onclick=()=>{if(!cur)return;document.querySelectorAll('.decide button').forEach(x=>x.classList.toggle('sel',x===b));
   const t=new Date().toLocaleString('ru-RU',{dateStyle:'short',timeStyle:'short'});LOG.push(`${t} — ${cur.i.name}: «${b.dataset.d}» (скептик: ${cur.r.verdict})`);localStorage.setItem('tf-log',JSON.stringify(LOG));drawLog();
