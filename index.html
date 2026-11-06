@@ -2,29 +2,43 @@
 <meta name="theme-color" content="#12100e">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png"><title>Торговый зал — 4 бота</title><link rel="stylesheet" href="style.css"></head><body>
-<header><div class="logo">◆</div><div><h1>Торговый зал</h1><p class="sub">Четыре бота спорят о рынке. Решение — за вами.</p></div></header>
+<header class="top">
+ <div class="brand"><div class="logo">◆</div><div><h1>Торговый зал</h1><p class="sub">Четыре бота спорят о рынке. Решение — за вами.</p></div></div>
+ <select id="ins" aria-label="Инструмент"></select>
+ <button id="run" class="primary" type="button">Запустить зал</button>
+ <p id="src" class="src">Выберите инструмент и запустите зал.</p>
+</header>
 <main>
-<section class="controls">
- <select id="ins"></select>
- <button id="run" class="primary">Запустить зал</button>
-</section>
-<div id="src" class="src"></div>
-<section class="tiles">
- <div class="tile" data-b="scanner"><span class="av">📡</span><b>Сканер</b><small>ищет объём</small></div>
- <div class="tile" data-b="news"><span class="av">📰</span><b>Новости</b><small>читает ленту</small></div>
- <div class="tile" data-b="trader"><span class="av">🎯</span><b>Трейдер</b><small>вход / выход</small></div>
- <div class="tile" data-b="skeptic"><span class="av">🧐</span><b>Скептик</b><small>спорит</small></div>
-</section>
-<div class="grid">
- <section class="card"><h2>Чат зала</h2><div id="chat" class="chat"><p class="hint">Выберите инструмент и нажмите «Запустить зал».</p></div></section>
- <aside>
-  <section class="card"><h2 id="chartTitle">График (1 ч)</h2><canvas id="chart" width="600" height="260"></canvas></section>
-  <section class="card" id="summary" hidden><h2>Итог сессии</h2><div id="sumBody"></div>
-   <div class="decide"><button data-d="Купить">Купить</button><button data-d="Ждать">Ждать</button><button data-d="Пропустить">Пропустить</button></div>
-   <p id="decision" class="small"></p></section>
-  <section class="card"><h2>Мои решения</h2><ul id="log" class="log"></ul></section>
- </aside>
-</div>
-<p class="disc">⚠️ Это не инвестиционная рекомендация. Боты лишь анализируют данные по простым правилам и спорят между собой; решение принимает человек. Кнопки «Купить / Ждать / Пропустить» только записывают ваше решение — сделки на бирже сами не исполняются. Прибыль не гарантируется.</p>
+ <div class="board">
+  <section class="card kpis" id="summary" aria-label="Итог сессии">
+   <div class="kpi-grid" id="sumBody">
+    <div class="kpi kpi-price"><span>Последняя цена</span><b>—</b></div>
+    <div class="kpi"><span>Идея</span><b>—</b></div>
+    <div class="kpi"><span>Вход</span><b>—</b></div>
+    <div class="kpi"><span>Стоп</span><b>—</b></div>
+    <div class="kpi"><span>Тейк</span><b>—</b></div>
+    <div class="kpi"><span>Подтверждения</span><b>—</b></div>
+    <div class="kpi"><span>Вердикт</span><b>—</b></div>
+   </div>
+  </section>
+  <section class="card chart-card">
+   <h2 id="chartTitle">График (1 ч)</h2>
+   <div class="chart-wrap"><canvas id="chart"></canvas></div>
+  </section>
+  <section class="bots" aria-label="Боты зала">
+   <article class="card bot" data-b="scanner"><h2><span class="av">📡</span> Сканер <small>ищет объём</small></h2><div class="bot-text" id="out-scanner"><p class="hint">Выберите инструмент — сырьё, валюту или акцию Мосбиржи — и нажмите «Запустить зал».</p></div></article>
+   <article class="card bot" data-b="news"><h2><span class="av">📰</span> Новости <small>читает ленту</small></h2><div class="bot-text" id="out-news"><p class="hint">Ждёт запуска.</p></div></article>
+   <article class="card bot" data-b="trader"><h2><span class="av">🎯</span> Трейдер <small>вход / выход</small></h2><div class="bot-text" id="out-trader"><p class="hint">Ждёт запуска.</p></div></article>
+   <article class="card bot" data-b="skeptic"><h2><span class="av">🧐</span> Скептик <small>спорит</small></h2><div class="bot-text" id="out-skeptic"><p class="hint">Ждёт запуска.</p></div></article>
+  </section>
+  <aside class="side">
+   <section class="card decide-card"><h2>Решение</h2>
+    <div class="decide"><button type="button" data-d="Купить">Купить</button><button type="button" data-d="Ждать">Ждать</button><button type="button" data-d="Пропустить">Пропустить</button></div>
+    <p id="decision" class="small"></p>
+   </section>
+   <section class="card log-card"><h2>Мои решения</h2><ul id="log" class="log"></ul></section>
+  </aside>
+ </div>
+ <p class="disc">⚠️ Это не инвестиционная рекомендация. Боты лишь анализируют данные по простым правилам и спорят между собой; решение принимает человек. Кнопки «Купить / Ждать / Пропустить» только записывают ваше решение — сделки на бирже сами не исполняются. Прибыль не гарантируется.</p>
 </main>
 <script src="snapshot.js"></script><script src="logic.js"></script><script src="app.js"></script></body></html>
