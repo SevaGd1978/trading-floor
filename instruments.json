@@ -1,0 +1,68 @@
+[
+ {
+  "id": "gold",
+  "name": "Золото",
+  "code": "XAU/USD",
+  "yahoo": "GC=F",
+  "binance": "PAXGUSDT",
+  "digits": 1,
+  "news": "золото цена",
+  "round": 50,
+  "loc": "золоте"
+ },
+ {
+  "id": "eurusd",
+  "name": "EUR/USD",
+  "code": "EUR/USD",
+  "yahoo": "EURUSD=X",
+  "binance": "EURUSDT",
+  "digits": 4,
+  "news": "курс евро доллар",
+  "round": 0.01,
+  "loc": "EUR/USD"
+ },
+ {
+  "id": "btc",
+  "name": "Биткоин",
+  "code": "BTC/USD",
+  "yahoo": "BTC-USD",
+  "binance": "BTCUSDT",
+  "digits": 0,
+  "news": "биткоин",
+  "round": 1000,
+  "loc": "биткоине"
+ },
+ {
+  "id": "oil",
+  "name": "Нефть Brent",
+  "code": "BRENT",
+  "yahoo": "BZ=F",
+  "binance": null,
+  "digits": 2,
+  "news": "нефть Brent",
+  "round": 5,
+  "loc": "нефти"
+ },
+ {
+  "id": "usdrub",
+  "name": "USD/RUB",
+  "code": "USD/RUB",
+  "yahoo": "RUB=X",
+  "binance": null,
+  "digits": 2,
+  "news": "курс рубля доллар ЦБ",
+  "round": 5,
+  "loc": "USD/RUB"
+ },
+ {
+  "id": "spx",
+  "name": "S&P 500",
+  "code": "SPX",
+  "yahoo": "^GSPC",
+  "binance": null,
+  "digits": 0,
+  "news": "S&P 500 фондовый рынок США",
+  "round": 100,
+  "loc": "S&P 500"
+ }
+]
